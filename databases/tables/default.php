@@ -6,7 +6,7 @@
  */
 defined('KOOWA') or die('Protected resource');
 
-class ComBaseCommonDatabaseTableDefault extends KDatabaseTableDefault
+class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 {
 	protected static $_tables;
 	protected $_relationships;

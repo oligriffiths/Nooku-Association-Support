@@ -1,6 +1,6 @@
 <?php
 
-class ComBaseCommonDatabaseRowDefault extends KDatabaseRowDefault{
+class KDatabaseRowActiveRecord extends KDatabaseRowDefault{
 
 	/**
 	 * Relationship information.
@@ -38,7 +38,7 @@ class ComBaseCommonDatabaseRowDefault extends KDatabaseRowDefault{
 	{
 		parent::__construct($config);
 
-		//Store relations
+		//Store relationships
 		$this->_relationships = $config->relationships->toArray();
 	}
 
