@@ -6,16 +6,19 @@ class KDatabaseRowActiveRecord extends KDatabaseRowDefault{
 	 * Relationship information.
 	 * Relationships must be specified in the following format:
 	 *
-	 * property_name => array(
-	 *      'model' => 'a nooku model identifier string or object',
-	 *          this is the identifer for the source model where the data is being retrieved from
+	 * 'relationship_type => E.g. 'one_one'
+	 *      array(
+	 *      property_name => array(
+	 *           'model' => 'a nooku model identifier string or object',
+	 *              this is the identifer for the source model where the data is being retrieved from
 	 *
-	 *      'keys' => array('foreign_key' => 'local_key'),
-	 *          foreign key is the key for the related table, local key is the column in this table that contains the value.
-	 *          when creating a many to many relationship this refers to the key within the relationship table defined below
+	 *          'keys' => array('foreign_key' => 'local_key'),
+	 *              foreign key is the key for the related table, local key is the column in this table that contains the value.
+	 *              when creating a many to many relationship this refers to the key within the relationship table defined below
 	 *
-	 *      'relation' => 'a nooku model identifier' (optional)
-	 *          only required for many to many relationship. This is the ID for the relationship table
+	 *          'relation' => 'a nooku model identifier' (optional)
+	 *              only required for many to many relationship. This is the ID for the relationship table
+	 *      )
 	 * )
 	 * 
 	 * Within the appropriate relationship type

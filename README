@@ -1,0 +1,59 @@
+So, basic active record for Nooku :)
+
+This system will automatically work out relationships based on table and column naming conventions.
+
+Relationships are determined using the following rules.
+
+One to one relations:
+These are determined using the columns from this table. Any column ending _id is created as a relation minus the _id
+
+One to many relations:
+These are determined following a naming convention. Any tables in the DB that belong to this package that match the
+singular of this table followed by an underscore. Also any tables if they contain a column of this table singular _id.
+E.g. package_users is related to package_user_groups. Also, package_users is related to package_posts if posts contains a user_id column
+
+Many to many relations:
+These are determined following a naming conventions. Any tables in the DB that belong to this packages that match the
+plural of this table followed by or preceeded by an underscore. Also any tables if they contain a column of this table singular _id.
+Also, a relation is defined for the table matched above, then an identifier for the model is created by removing the plural suffix.
+E.g. package_posts is related to package_posts_categories which is related to package_posts
+
+This data is then passed to the row object that uses this relationship information in order to lookup data.
+
+Relationships must be specified in the following format:
+
+'relationship_type => E.g. 'one_one'
+      array(
+      property_name => array(
+           'model' => 'a nooku model identifier string or object',
+              this is the identifer for the source model where the data is being retrieved from
+
+          'keys' => array('foreign_key' => 'local_key'),
+              foreign key is the key for the related table, local key is the column in this table that contains the value.
+              when creating a many to many relationship this refers to the key within the relationship table defined below
+
+          'relation' => 'a nooku model identifier' (optional)
+              only required for many to many relationship. This is the ID for the relationship table
+      )
+)
+
+
+Then to use you simply do:
+
+One to One:
+$user->profile->name;
+
+One to many
+foreach($user->documents AS $document){}
+
+Or passing state information to the documents model
+foreach($user->documents(array('enabled' => true)) AS $document){}
+
+Many to many:
+foreach($user->groups AS $group){}
+
+State information can be passed in the same format at above
+
+There is a sample component: com_test
+
+Happy coding :)
