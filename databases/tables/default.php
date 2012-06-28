@@ -27,22 +27,22 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 
 
 	/**
-	 * Create the relationships between this table and other tables
+	 * Create the relationships between the source table and other tables
 	 * Relationships are determined using the following rules.
 	 *
-	 * One to one relations:
-	 * These are determined using the columns from this table. Any column ending _id is created as a relation minus the _id
+	 * One to one relationships:
+	 * These are determined using the columns from this table. Any column ending _id is created as a relationship minus the _id
 	 *
-	 * One to many relations:
-	 * These are determined following a naming convention. Any tables in the DB that belong to this package that match the
-	 * singular of this table followed by an underscore. Also any tables if they contain a column of this table singular _id.
+	 * One to many relationships:
+	 * These are determined following a naming convention. Any tables in the DB that belong to the same package that match the
+	 * singular of the source table followed by an underscore. Also any tables that contain a column of the source table singular followed by _id.
 	 * E.g. package_users is related to package_user_groups. Also, package_users is related to package_posts if posts contains a user_id column
-	 *
-	 * Many to many relations:
-	 * These are determined following a naming conventions. Any tables in the DB that belong to this packages that match the
-	 * plural of this table followed by or preceeded by an underscore. Also any tables if they contain a column of this table singular _id.
-	 * Also, a relation is defined for the table matched above, then an identifier for the model is created by removing the plural suffix.
-	 * E.g. package_posts is related to package_posts_categories which is related to package_posts
+
+	 * Many to many relationships:
+	 * These are determined following a naming conventions. Any tables in the DB that belong to the same packages that match the
+	 * plural of the source table followed by or preceded by an underscore. Also any tables that contain a column of the source table singular followed by _id.
+	 * Also, if a relationship is defined for the table matched above, then an identifier for the source model is created by removing the plural suffix.
+	 * E.g. package_posts is related to package_posts_categories which is in turn related to package_posts. So package_posts > package_posts_categories > package_categories
 	 *
 	 * @return mixed
 	 */
