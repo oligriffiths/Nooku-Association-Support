@@ -51,6 +51,16 @@ class KDatabaseTableActiverecord extends KDatabaseTableDefault
 	{
 		if($this->_associations_processed) return $this->_associations;
 
+		//Check APC cache for associations
+		if(extension_loaded('apc')){
+			$associations = apc_fetch('koowa-cache-identifier-'.((string) $this->getIdentifier()).'.associations');
+			if($associations)
+			{
+				$this->_associations = $associations;
+				return $this->_associations;
+			}
+		}
+
 		$tables         = $this->getTables();
 		$identifier     = clone $this->getIdentifier();
 		$identifier->path = array('model');
@@ -177,6 +187,10 @@ class KDatabaseTableActiverecord extends KDatabaseTableDefault
 					$this->_associations[$association_table] = array('type' => 'many_many', 'model' => $id,	'keys' => $primary_keys, 'through' => $association);
 				}
 			}
+		}
+
+		if(extension_loaded('apc')){
+			apc_store('koowa-cache-identifier-'.((string) $this->getIdentifier()).'.associations', $this->_associations);
 		}
 
 		$this->_associations_processed = true;
