@@ -6,49 +6,50 @@
  */
 defined('KOOWA') or die('Protected resource');
 
-class KDatabaseTableActiveRecord extends KDatabaseTableDefault
+class KDatabaseTableActiverecord extends KDatabaseTableDefault
 {
 	protected static $_tables;
-	protected $_relationships;
+	protected $_associations;
+	protected $_associations_processed = false;
 
 
 	/**
-	 * Get an instance of a row object for this table and merges in the relations
+	 * Get an instance of a row object for this table and merges in the associations
 	 *
 	 * @param	array An optional associative array of configuration settings.
 	 * @return  KDatabaseRowInterface
 	 */
 	public function getRow(array $options = array())
 	{
-		$options['relationships'] = isset($options['relationships']) ? array_merge($options['relationships'], $this->getrReationships()) : $this->getrReationships();
+		$options['associations'] = isset($options['associations']) ? array_merge($options['associations'], $this->getAssociations()) : $this->getAssociations();
 		return parent::getRow($options);
 	}
 
 
 
 	/**
-	 * Create the relationships between the source table and other tables
-	 * Relationships are determined using the following rules.
+	 * Create the associations between the source table and other tables
+	 * Associations are determined using the following rules.
 	 *
-	 * One to one relationships:
-	 * These are determined using the columns from this table. Any column ending _id is created as a relationship minus the _id
+	 * One to one associations:
+	 * These are determined using the columns from this table. Any column ending _id is created as a association minus the _id
 	 *
-	 * One to many relationships:
+	 * One to many associations:
 	 * These are determined following a naming convention. Any tables in the DB that belong to the same package that match the
 	 * singular of the source table followed by an underscore. Also any tables that contain a column of the source table singular followed by _id.
-	 * E.g. package_users is related to package_user_groups. Also, package_users is related to package_posts if posts contains a user_id column
+	 * E.g. package_users is associated to package_user_groups. Also, package_users is associated to package_posts if posts contains a user_id column
 
-	 * Many to many relationships:
+	 * Many to many associations:
 	 * These are determined following a naming conventions. Any tables in the DB that belong to the same packages that match the
 	 * plural of the source table followed by or preceded by an underscore. Also any tables that contain a column of the source table singular followed by _id.
-	 * Also, if a relationship is defined for the table matched above, then an identifier for the source model is created by removing the plural suffix.
-	 * E.g. package_posts is related to package_posts_categories which is in turn related to package_posts. So package_posts > package_posts_categories > package_categories
+	 * Also, if a association is defined for the table matched above, then an identifier for the source model is created by removing the plural suffix.
+	 * E.g. package_posts is associated to package_posts_categories which is in turn associated to package_posts. So package_posts > package_posts_categories > package_categories
 	 *
 	 * @return mixed
 	 */
-	public function getRelations()
+	public function getAssociations()
 	{
-		if(isset($this->_relationships)) return $this->_relationships;
+		if($this->_associations_processed) return $this->_associations;
 
 		$tables         = $this->getTables();
 		$identifier     = clone $this->getIdentifier();
@@ -58,13 +59,10 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 		$stub_singular  = KInflector::singularize($identifier->name);
 		$stub_plural    = KInflector::pluralize($identifier->name);
 		$primary_keys   = array();
-		$one_to_one     = array();
-		$one_to_many    = array();
-		$many_to_many   = array();
 		$columns        = $this->getColumns();
 
 
-		//1:1 Relations
+		//1:1 Associations
 		foreach($columns AS $id => $column)
 		{
 			//Find all columns ending _id but not the id column
@@ -72,6 +70,9 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 			{
 				//Create table name
 				$model_name = KInflector::pluralize(preg_replace('#_id$#','',$column->name));
+
+				//If this association is already defined, move on.
+				if(isset($this->_associations[KInflector::singularize($model_name)])) continue;
 
 				//Ensure the table actually exists
 				if(isset($tables[$package.'_'.$model_name]))
@@ -82,7 +83,7 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 					//Ensure the model & table exists
 					if($this->getService($id)->isConnected())
 					{
-						$one_to_one[KInflector::singularize($model_name)] = array('model' => $id, 'keys' => array('id' => $column->name));
+						$this->_associations[KInflector::singularize($model_name)] = array('type' => 'one_one', 'model' => $id, 'keys' => array('id' => $column->name));
 					}
 				}
 			}elseif($column->primary)
@@ -91,7 +92,7 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 			}
 		}
 
-		//1:N and N:N Relations
+		//1:N and N:N Associations
 		foreach($tables AS $table)
 		{
 			//Ensure the table is part of this package
@@ -101,7 +102,7 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 				$is_one_many    = preg_match('#^'.preg_quote($stub_singular).'_#', $table);
 				$is_many_many   = !$is_one_many ? (preg_match('#^'.preg_quote($stub_plural).'_#', $table) || preg_match('#_'.preg_quote($stub_plural).'$#', $table)) : false;
 
-				//If no relationship by name, try to determine relationship from table schema by comparing primary keys
+				//If no association by name, try to determine association from table schema by comparing primary keys
 				if(!$is_one_many && !$is_many_many)
 				{
 					try{
@@ -119,56 +120,67 @@ class KDatabaseTableActiveRecord extends KDatabaseTableDefault
 						}
 						$keys = array_keys($primary_keys);
 
-						//Ensure all this tables primarys keys exist within the "related" table
+						//Ensure all this tables primarys keys exist within the "associated" table
 						if(!array_intersect($keys, $columns) == $keys) continue;
 
 						//Check if table is a one_many or many_many
 						$parts = explode('_', $table);
-						$is_many_many = true;
-						foreach($parts AS $part)
+
+						//Detect relationship
+						$is_one_many = $is_many_many = true;
+						if(count($parts) == 1){
+							$is_many_many = false;
+						}
+						else
 						{
-							if(KInflector::isSingular($part))
+							foreach($parts AS $part)
 							{
-								$is_one_many = true;
-								$is_many_many = false;
-								break;
+								if(KInflector::isSingular($part)) $is_many_many = false;
 							}
 						}
 					}catch(Exception $e){}
 				}
 
-
-				//Validate 1:N relationship
+				//Validate 1:N association
 				if($is_one_many)
 				{
-					$relation_table = preg_replace('#^'.$stub_singular.'_#','', $table);
+					$association_table = preg_replace('#^'.$stub_singular.'_#','', $table);
+
+					//If this association is already defined, move on.
+					if(isset($this->_associations[$association_table])) continue;
+
+					//Construct the model identifier
 					$id = clone $identifier;
 					$id->name = $table;
-
-					$one_to_many[$relation_table] = array('model' => $id, 'keys' => $primary_keys);
+					$this->_associations[$association_table] = array('type' => 'one_many', 'model' => $id, 'keys' => $primary_keys);
 				}
-				//Validate N:N relationship
+				//Validate N:N association
 				elseif($is_many_many)
 				{
-					$relation_table = preg_replace('#^'.$stub_plural.'_#','', $table);
-					$id = clone $identifier;
-					$id->name = $relation_table;
+					$association_table = preg_replace('#^'.$stub_plural.'_#','', $table);
 
+					//If this association is already defined, move on.
+					if(isset($this->_associations[$association_table])) continue;
+
+					//Construct the model identifier
+					$id = clone $identifier;
+					$id->name = $association_table;
 					$keys = array();
 					foreach($primary_keys AS $column => $pk)
 					{
 						$keys[$pk] = $column;
 					}
 
-					$relation = clone $identifier;
-					$relation->name = $table;
-					$many_to_many[$relation_table] = array('model' => $id,	'keys' => $primary_keys, 'relation' => $relation);
+					//Construct the association model identifier
+					$association = clone $identifier;
+					$association->name = $table;
+					$this->_associations[$association_table] = array('type' => 'many_many', 'model' => $id,	'keys' => $primary_keys, 'through' => $association);
 				}
 			}
 		}
 
-		$this->_relationships = array('one_one' => $one_to_one, 'one_many' => $one_to_many, 'many_many' => $many_to_many);
-		return $this->_relationships;
+		$this->_associations_processed = true;
+		return $this->_associations;
 	}
 
 
