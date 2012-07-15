@@ -1,18 +1,18 @@
-So, basic active record for Nooku :)
+So, basic data gateway associations for Nooku :)
 
-This system will automatically work out relationships based on table and column naming conventions.
+This system will automatically work out associations based on table and column naming conventions.
 
-Relationships are determined using the following rules.
+Associations are determined using the following rules.
 
-One to one relationships:
-These are determined using the columns from the target table. Any column ending _id is created as a relationship minus the _id
+One to one associations:
+These are determined using the columns from the target table. Any column ending _id is created as a association minus the _id
 
-One to many relationships:
+One to many associations:
 These are determined following a naming convention. Any tables in the DB that belong to the same package that match the
 singular of the source table followed by an underscore. Also any tables that contain a column of the source table singular followed by _id.
 E.g. package_users is related to package_user_groups. Also, package_users is related to package_posts if posts contains a user_id column
 
-Many to many relationships:
+Many to many associations:
 These are determined following a naming conventions. Any tables in the DB that belong to the same packages that match the
 plural of the source table followed by or preceded by an underscore. Also any tables that contain a column of the source table singular followed by _id.
 Also, if a relationship is defined for the table matched above, then an identifier for the source model is created by removing the plural suffix.
@@ -22,20 +22,19 @@ This data is then passed to the row object that uses this relationship informati
 
 Relationships must be specified in the following format:
 
-'relationship_type => E.g. 'one_one'
-      array(
-      property_name => array(
-           'model' => 'a nooku model identifier string or object',
-              this is the identifer for the source model where the data is being retrieved from
+property_name => array(
+	'type' => 'association type' (one of one_one|one_many|many_many)
+	'model' => 'a nooku model identifier string or object',
+		this is the identifer for the source model where the data is being retrieved from
 
-          'keys' => array('foreign_key' => 'local_key'),
-              foreign key is the key for the related table, local key is the column in this table that contains the value.
-              when creating a many to many relationship this refers to the key within the relationship table defined below
+	'keys' => array('foreign_key' => 'local_key'),
+		foreign key is the key for the related table, local key is the column in this table that contains the value.
+		when creating a many to many relationship this refers to the key within the relationship table defined below
 
-          'relation' => 'a nooku model identifier' (optional)
-              only required for many to many relationship. This is the ID for the relationship table (e.g. a relationship table)
+	'through' => 'a nooku model identifier' (optional)
+              only required for many to many association. This is the ID for the "through" table (e.g. a relationship table) that associations are made.
       )
-)
+
 
 
 Then to use you simply do:
