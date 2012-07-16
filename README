@@ -1,4 +1,4 @@
-So, basic data gateway associations for Nooku :)
+So, basic data gateway associations for Nooku 12.1 and up :)
 
 This system will automatically work out associations based on table and column naming conventions.
 
