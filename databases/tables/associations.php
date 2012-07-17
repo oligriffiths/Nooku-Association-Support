@@ -12,7 +12,7 @@ class KDatabaseTableAssociations extends KDatabaseTableDefault
 	{
 		if($config->get('load_associations','true'))
 		{
-			$config->behaviors = array('associatable');
+			$config->append(array('behaviors' => array('associatable')));
 		}
 		parent::__construct($config);
 	}

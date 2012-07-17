@@ -9,8 +9,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 {
 	/**
 	 * Association information.
-	 * Associations must be specified in the following format:
-	 *
+	 * Associations must be specified in the following format with the KDatabaseRow:
 	 *
 	 *  $_associations = array(
 	 *      property_name => array(
