@@ -2,6 +2,8 @@
 
 class KDatabaseRowAssociations extends KDatabaseRowDefault
 {
+	public $_associations;
+
 	/**
 	 * Get a value by key or a associated
 	 *
@@ -31,12 +33,14 @@ class KDatabaseRowAssociations extends KDatabaseRowDefault
 	{
 		$property = $method;
 
-		//Check if its an associated property
-		if(KInflector::isPlural($method) && !in_array($method, $this->_mixed_methods))
+		$parts = KInflector::explode($method);
+
+		//Lazy load mixin
+		//If associatable mixin loaded, look for association
+		if($parts[0] != 'is' && $this->isAssociatable() && !in_array($method, $this->_mixed_methods))
 		{
-			//Lazy load mixin
-			//If associatable mixin loaded, look for association
-			if($this->isAssociatable())
+			//Check if its an associated property
+			if(KInflector::isPlural($method))
 			{
 				$state = array_shift($args);
 

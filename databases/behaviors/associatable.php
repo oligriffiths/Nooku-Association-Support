@@ -9,7 +9,8 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 {
 	/**
 	 * Association information.
-	 * Associations must be specified in the following format with the KDatabaseRow:
+	 * Associations must be specified in the following format:
+	 *
 	 *
 	 *  $_associations = array(
 	 *      property_name => array(
@@ -49,6 +50,20 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 
 
 	/**
+	 * Sets the mixer object and loads the associations from the DB
+	 * @param $mixer
+	 * @return KDatabaseBehaviorAssociatable|KMixinInterface
+	 */
+	public function setMixer($mixer)
+	{
+		parent::setMixer($mixer);
+
+		$this->detectAssociations();
+		return $this;
+	}
+
+
+	/**
 	 * Create the associations between the source table and other tables
 	 * Associations are determined using the following rules.
 	 *
@@ -70,7 +85,17 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 	 */
 	protected function detectAssociations()
 	{
+		$mixer = $this->getMixer();
+		if(!$mixer instanceof KDatabaseRowAbstract)
+		{
+			throw new Exception(__CLASS__.'::'.__FUNCTION__.' can only be called on a KDatabaseRowAbstract instance');
+		}
+
+		//Return if we've done this before
 		if($this->_associations_processed) return $this->_associations;
+
+		//Gather the defined associations from the row
+		$this->_associations = (array) $mixer->_associations;
 
 		//Check APC cache for associations
 		if(extension_loaded('apc')){
@@ -270,17 +295,82 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		//Get the associations
 		$this->detectAssociations();
 
-		//Attempt to find association
-		if(!isset($this->_associations[$property]) ||
-			!isset($this->_associations[$property]['type']) ||
-			!isset($this->_associations[$property]['model']) ||
-			!isset($this->_associations[$property]['keys']) ||
-			!in_array($this->_associations[$property]['type'], array('one_one','one_many','many_many')))
-		{
+		//Get the association
+		if(!$association = isset($this->_associations[$property]) ? $this->_associations[$property] : null){
 			return null;
 		}
 
-		return new KConfig($this->_associations[$property]);
+
+		//Attempt to find association
+		if(	!isset($association['type']) ||
+			!isset($association['model']) ||
+			!isset($association['keys']) ||
+			!in_array($association['type'], array('one_one','one_many','many_many')))
+		{
+			return NULL;
+		}
+
+		//Ensure the model is an identifier, if not, convert to ID
+		if(strpos((string) $association['model'],'.') === false)
+		{
+			$identifier = clone $this->getIdentifier();
+			$identifier->path = array('model');
+			$identifier->name = $association['model'];
+			$association['model'] = $identifier;
+			$this->_associations[$property] = $association;
+		}
+
+		return new KConfig($association);
+	}
+
+
+	/**
+	 * Returns the defined associations
+	 * @return array
+	 */
+	public function getAssociations()
+	{
+		return $this->_associations;
+	}
+
+
+	/**
+	 * Sets an association for a given property
+	 * @param $property
+	 * @param array $association
+	 * @return KDatabaseBehaviorAssociatable
+	 * @throws KDatabaseRowException
+	 */
+	public function setAssociation($property, array $association)
+	{
+		//Validate association
+		if(	!isset($association['type']) ||
+			!isset($association['model']) ||
+			!isset($association['keys']) ||
+			!in_array($association['type'], array('one_one','one_many','many_many')))
+		{
+			throw new KDatabaseRowException(__CLASS__.'::'.__FUNCTION__.' association requires a type, model and keys property');
+		}
+
+		//Ensure many to many relationships have a through model
+		if($association['type'] == 'many_many' && !isset($association['through']))
+		{
+			throw new KDatabaseRowException(__CLASS__.'::'.__FUNCTION__.' many to many associations require a "through" model');
+		}
+
+		//Ensure the model is an identifier, if not, convert to ID
+		if(strpos((string) $association['model'],'.') === false)
+		{
+			$identifier = clone $this->getIdentifier();
+			$identifier->path = array('model');
+			$identifier->name = $association['model'];
+			$association['model'] = $identifier;
+		}
+
+		//Set the association
+		$this->_associations[$property] = $association;
+
+		return $this;
 	}
 
 
@@ -296,7 +386,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		//Attempt to find association
 		if(!($association = $this->getAssociation($property)))
 		{
-			return null;
+			return NULL;
 		}
 
 		//Return data for the relevant type
@@ -315,7 +405,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 				break;
 		}
 
-		return null;
+		return NULL;
 	}
 
 
@@ -329,14 +419,14 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		//Ensure associated exists and is complete
 		if(!($association = $this->getAssociation($property)))
 		{
-			return null;
+			return NULL;
 		}
 
 		//Try to retrieve the data from the model
 		try{
 			//Check the identifier is a model
 			$model = $this->getService($association->model);
-			if(!$model instanceof KModelAbstract) return null;
+			if(!$model instanceof KModelAbstract) return NULL;
 
 			//Get the mixer for the data
 			$mixer = $this->getMixer();
@@ -345,7 +435,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 			$state = array();
 			foreach($association->keys->toArray() AS $fk => $lk)
 			{
-				if(!isset($state[$fk]) && $mixer->$lk !== null)	$state[$fk] = $mixer->$lk;
+				if(!isset($state[$fk]) && $mixer->$lk !== NULL)	$state[$fk] = $mixer->$lk;
 			}
 
 			//Can't have empty state
@@ -355,7 +445,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		}
 		catch (Exception $e)
 		{
-			return null;
+			return NULL;
 		}
 	}
 
@@ -371,14 +461,14 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		//Ensure associated exists and is complete
 		if(!($association = $this->getAssociation($property)))
 		{
-			return null;
+			return NULL;
 		}
 
 		//Try to retrieve the data from the model
 		try{
 			//Check the identifier is a model
 			$model = $this->getService($association->model);
-			if(!$model instanceof KModelAbstract) return null;
+			if(!$model instanceof KModelAbstract) return NULL;
 
 			//Get the mixer for the data
 			$mixer = $this->getMixer();
@@ -386,18 +476,18 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 			//Map the states foreign keys
 			foreach($association->keys->toArray() AS $fk => $lk)
 			{
-				if(!isset($state[$fk]) && $mixer->$lk !== null) $state[$fk] = $mixer->$lk;
+				if(!isset($state[$fk]) && $mixer->$lk !== NULL) $state[$fk] = $mixer->$lk;
 			}
 
 			//Ensure we have a key
-			if(empty($state)) return null;
+			if(empty($state)) return NULL;
 
 			//Ensure that each key is a state in the relevant model
 			return $model->set($state)->getList();
 		}
 		catch (Exception $e)
 		{
-			return null;
+			return NULL;
 		}
 	}
 
@@ -413,7 +503,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		//Ensure associated exists and is complete
 		if(!($association = $this->getAssociation($property)))
 		{
-			return null;
+			return NULL;
 		}
 
 		//Try to retrieve the data from the model
@@ -421,7 +511,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		{
 			//Check the identifier is a model
 			$model = $this->getService($association->model);
-			if(!$model instanceof KModelAbstract) return null;
+			if(!$model instanceof KModelAbstract) return NULL;
 
 			//Get the mixer for the data
 			$mixer = $this->getMixer();
@@ -430,17 +520,17 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 			if($association->through)
 			{
 				$associated_model = $this->getService($association->through);
-				if(!$associated_model instanceof KModelAbstract) return null;
+				if(!$associated_model instanceof KModelAbstract) return NULL;
 
 				//Map the states foreign keys
 				$through_state = array();
 				foreach($association->keys->toArray() AS $fk => $lk)
 				{
-					if(!isset($state[$fk]) && $mixer->$lk !== null) $through_state[$fk] = $mixer->$lk;
+					if(!isset($state[$fk]) && $mixer->$lk !== NULL) $through_state[$fk] = $mixer->$lk;
 				}
 
 				//Ensure we have a key
-				if(empty($through_state)) return null;
+				if(empty($through_state)) return NULL;
 
 				//Ensure that each key is a state in the relevant model
 				$associations = $associated_model->set($through_state)->getList();
@@ -466,7 +556,7 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 		}
 		catch (Exception $e)
 		{
-			return null;
+			return NULL;
 		}
 	}
 }

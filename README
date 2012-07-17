@@ -35,6 +35,7 @@ property_name => array(
               only required for many to many association. This is the ID for the "through" table (e.g. a relationship table) that associations are made.
       )
 
+This can also be manually defined within a public property named $_associations within any row.
 
 
 Then to use you simply do:
