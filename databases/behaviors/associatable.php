@@ -58,7 +58,10 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 	{
 		parent::setMixer($mixer);
 
-		$this->detectAssociations();
+		if($mixer instanceof KDatabaseRowAbstract)
+		{
+			$this->detectAssociations();
+		}
 		return $this;
 	}
 
@@ -331,6 +334,23 @@ class KDatabaseBehaviorAssociatable extends KDatabaseBehaviorAbstract
 	public function getAssociations()
 	{
 		return $this->_associations;
+	}
+
+
+	/**
+	 * Gets all data for all associations
+	 * @param bool $modified
+	 * @return array
+	 */
+	public function getAssociationsData($modified = false)
+	{
+		$data = array();
+		foreach(array_keys($this->getAssociations()) AS $property)
+		{
+			$data[$property] = $this->getAssociated($property)->getData($modified, true);
+		}
+
+		return $data;
 	}
 
 

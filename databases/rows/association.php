@@ -1,8 +1,27 @@
 <?php
 
-class KDatabaseRowAssociations extends KDatabaseRowDefault
+class KDatabaseRowAssociation extends KDatabaseRowDefault
 {
 	public $_associations;
+
+	/**
+	 * Returns an associative array of the raw data
+	 *
+	 * @param   boolean  If TRUE, only return the modified data. Default FALSE
+	 * @param   boolean  If TRUE, includes the associations data. Default FALSE
+	 * @return  array
+	 */
+	public function getData($modified = false, $associations = false)
+	{
+		$data = parent::getData($modified);
+
+		if($associations){
+			$data = array_merge($data, $this->getAssociationsData($modified));
+		}
+
+		return $data;
+	}
+
 
 	/**
 	 * Get a value by key or a associated

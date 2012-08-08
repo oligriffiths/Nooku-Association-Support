@@ -10,7 +10,7 @@ class KDatabaseTableAssociations extends KDatabaseTableDefault
 {
 	public function __construct(KConfig $config)
 	{
-		if($config->get('load_associations','true'))
+		if($config->get('load_associations',true))
 		{
 			$config->append(array('behaviors' => array('associatable')));
 		}
