@@ -61,7 +61,8 @@ class KDatabaseRowAssociation extends KDatabaseRowDefault
 			//Check if its an associated property
 			if(KInflector::isPlural($method))
 			{
-				$state = array_shift($args);
+				$arguments = $args;
+				$state = array_shift($arguments);
 
 				//Check if we've previously retrieved this property
 				if(isset($this->_data[$property]) && empty($state)) return $this->_data[$property];
